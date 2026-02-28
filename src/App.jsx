@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
 import Verification from './pages/Verification';
-import Print from './pages/Print';
+import Print from './pages/print';
 import Navbar from './components/Navbar';
 
 // Processing, Confirmation, Summary, Share kept for backward-compat but no longer in main flow
