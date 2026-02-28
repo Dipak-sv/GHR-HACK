@@ -19,7 +19,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // ── Middleware ─────────────────────────────────────────
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
@@ -29,6 +29,11 @@ app.use(express.urlencoded({ extended: true }));
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
+
+// ── Test upload page ───────────────────────────────────
+app.get('/test', (req, res) => {
+  res.sendFile(path.join(__dirname, '../test-upload.html'));
 });
 
 // ── Routes ─────────────────────────────────────────────

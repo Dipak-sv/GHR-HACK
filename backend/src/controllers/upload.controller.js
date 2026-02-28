@@ -1,13 +1,13 @@
-const fs = require('fs');
+const fs           = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const Prescription = require('../models/prescription.model');
 const { extractPrescription } = require('../services/ai.service');
-const { analyzeSafety } = require('../services/safety.engine');
+const { analyzeSafety }       = require('../services/safety.engine');
 
 exports.uploadImage = async (req, res, next) => {
   try {
 
-    // STEP 1 — Check file exists
+    // STEP 1 — Validate file exists
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -16,18 +16,15 @@ exports.uploadImage = async (req, res, next) => {
       });
     }
 
-    // STEP 2 — Generate sessionId
+    // STEP 2 — Generate unique session ID
     const sessionId = uuidv4();
 
-    // STEP 3 — Call AI service
+    // STEP 3 — Call Groq Vision AI
     let aiResult;
     try {
       aiResult = await extractPrescription(req.file.path);
     } catch (aiError) {
-      // Delete temp file if AI fails
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return res.status(500).json({
         success: false,
         error: 'AI_FAILED',
@@ -36,7 +33,7 @@ exports.uploadImage = async (req, res, next) => {
       });
     }
 
-    // STEP 4 — Run safety analysis
+    // STEP 4 — Run Safety Engine
     const safetyAnalysis = analyzeSafety(aiResult.extractedData);
 
     // STEP 5 — Save to MongoDB
@@ -47,10 +44,8 @@ exports.uploadImage = async (req, res, next) => {
     });
     await prescription.save();
 
-    // STEP 6 — Delete temp image
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+    // STEP 6 — Delete temp image (privacy)
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
     // STEP 7 — Return response
     return res.status(200).json({
