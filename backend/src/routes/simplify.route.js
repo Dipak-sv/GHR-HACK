@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
-const { simplifyText } = require("../controllers/simplify.controller");
+const express  = require('express');
+const router   = express.Router();
+const { simplifyText } = require('../controllers/simplify.controller');
 
-router.post("/", simplifyText);
+router.post('/simplify', simplifyText);
 
 module.exports = router;

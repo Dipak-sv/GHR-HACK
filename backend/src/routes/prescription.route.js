@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
-const { getPrescription } = require("../controllers/prescription.controller");
+const express  = require('express');
+const router   = express.Router();
+const { getPrescription } = require('../controllers/prescription.controller');
 
-router.get("/:id", getPrescription);
+router.get('/prescription/:sessionId', getPrescription);
 
 module.exports = router;

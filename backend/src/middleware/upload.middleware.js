@@ -1,34 +1,47 @@
-const multer = require("multer");
-const path = require("path");
 
-// Storage 
+const multer = require('multer');
+const path   = require('path');
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    const uniqueName = Date.now() + "-" + file.originalname;
+    const uniqueName = Date.now() + '-' + file.originalname;
     cb(null, uniqueName);
-  },
+  }
 });
 
-//(only images)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPG and PNG images are allowed"), false);
+    const err = new Error('Only JPG, PNG and WebP images are allowed');
+    err.statusCode = 415;
+    err.code = 'INVALID_FILE_TYPE';
+    cb(err, false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
 module.exports = upload;
+const errorMiddleware = (err, req, res, next) => {
+  console.error(err.message);
+
+  const statusCode = err.statusCode || 500;
+
+  res.status(statusCode).json({
+    success: false,
+    error: err.code || 'SERVER_ERROR',
+    message: err.message || 'Something went wrong'
+  });
+};
+
+module.exports = errorMiddleware;
+
