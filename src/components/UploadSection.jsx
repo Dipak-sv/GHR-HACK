@@ -91,7 +91,7 @@ const UploadSection = ({ onUploadSuccess }) => {
             Click to upload or drag and drop
           </h3>
           <p className="text-slate-500 mb-8 max-w-sm text-center">
-            SVG, PNG, JPG or GIF (max. 800x400px). Ensure the text is clear.
+            SVG, PNG or JPG. Ensure the text is clear.
           </p>
           <button className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors shadow-sm pointer-events-none">
             Select a file
