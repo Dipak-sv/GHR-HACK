@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock } from 'lucide-react';
+import { ArrowLeft, Download, Clock, Share2 } from 'lucide-react';
 
 const Summary = () => {
     const navigate = useNavigate();
@@ -21,9 +21,18 @@ const Summary = () => {
                         <ArrowLeft className="w-4 h-4" /> Back to Upload
                     </button>
 
-                    <button className="flex items-center gap-2 px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-colors">
-                        <Download className="w-4 h-4" /> Download PDF
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => navigate('/share')}
+                            className="flex items-center gap-2 px-5 py-2 bg-white border border-teal-600 text-teal-600 hover:bg-teal-50 rounded-xl transition-colors"
+                        >
+                            <Share2 className="w-4 h-4" /> Share
+                        </button>
+
+                        <button className="flex items-center gap-2 px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-colors">
+                            <Download className="w-4 h-4" /> Download PDF
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">

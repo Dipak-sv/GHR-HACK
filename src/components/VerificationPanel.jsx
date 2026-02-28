@@ -9,7 +9,7 @@ const VerificationPanel = ({ initialData, onConfirm }) => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      setEditedMedicines(medicines); 
+      setEditedMedicines(medicines);
     }
     setIsEditing(!isEditing);
   };
@@ -38,30 +38,47 @@ const VerificationPanel = ({ initialData, onConfirm }) => {
     <div className="w-full flex w-full flex-col h-full bg-slate-50 border-l border-slate-200">
       <div className="p-6 border-b border-slate-200 bg-white shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-slate-800 tracking-tight">Extracted Data</h2>
-          {!isEditing ? (
-            <button
-              onClick={handleEditToggle}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors text-sm border border-slate-200"
-            >
-              <Edit2 className="w-4 h-4" /> Edit
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleEditToggle}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-medium transition-colors text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors shadow-sm text-sm"
-              >
-                <Check className="w-4 h-4" /> Confirm Changes
-              </button>
-            </div>
-          )}
+          <h2 className="text-2xl font-semibold text-slate-800 tracking-tight">
+            Extracted Data
+          </h2>
+
+          <div className="flex gap-3">
+            {!isEditing && (
+              <>
+                <button
+                  onClick={handleEditToggle}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors text-sm border border-slate-200"
+                >
+                  <Edit2 className="w-4 h-4" /> Edit
+                </button>
+
+                <button
+                  onClick={() => onConfirm(medicines)}
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
+                >
+                  <Check className="w-4 h-4" /> Confirm
+                </button>
+              </>
+            )}
+
+            {isEditing && (
+              <>
+                <button
+                  onClick={handleEditToggle}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-medium transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors shadow-sm text-sm"
+                >
+                  <Check className="w-4 h-4" /> Confirm Changes
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4 bg-teal-50/50 p-4 border border-teal-100 rounded-2xl">

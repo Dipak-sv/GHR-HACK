@@ -7,6 +7,7 @@ import Verification from './pages/Verification';
 import Confirmation from './pages/Confirmation';
 import Summary from './pages/Summary';
 import Navbar from './components/Navbar';
+import Share from './pages/Share';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/processing" element={<Processing />} />
           <Route path="/verification" element={<Verification />} />
           <Route path="/confirmation" element={<Confirmation />} />
+          <Route path="/share" element={<Share />} />
           <Route path="/summary" element={<Summary />} />
         </Routes>
       </>

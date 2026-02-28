@@ -20,7 +20,7 @@ const Navbar = () => {
               <div className="bg-teal-50 p-2 rounded-xl group-hover:bg-teal-100 transition-colors">
                 <Activity className="h-6 w-6 text-teal-600" />
               </div>
-              <span className="font-semibold text-xl text-slate-800 tracking-tight">Medivice AI</span>
+              <span className="font-semibold text-xl text-slate-800 tracking-tight">Perscripto</span>
             </Link>
           </div>
 
