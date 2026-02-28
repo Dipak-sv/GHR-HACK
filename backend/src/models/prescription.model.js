@@ -7,15 +7,7 @@ const prescriptionSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        patientEmail: {
-            type: String,
-            required: true,
-        },
         doctorName: {
-            type: String,
-            required: true,
-        },
-        doctorEmail: {
             type: String,
             required: true,
         },
