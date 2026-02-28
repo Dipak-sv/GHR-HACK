@@ -1,8 +1,16 @@
+
+const fs           = require('fs');
+const { v4: uuidv4 } = require('uuid');
+const Prescription = require('../models/prescription.model');
+const { extractPrescription } = require('../services/ai.service');
+const { analyzeSafety }       = require('../services/safety.engine');
+
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const Prescription = require('../models/prescription.model');
 const { extractPrescription } = require('../services/ai.service');
 const { analyzeSafety } = require('../services/safety.engine');
+
 
 exports.uploadImage = async (req, res, next) => {
   try {
@@ -62,4 +70,4 @@ exports.uploadImage = async (req, res, next) => {
     }
     next(error);
   }
-};
+
