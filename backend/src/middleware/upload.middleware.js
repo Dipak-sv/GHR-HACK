@@ -1,34 +1,13 @@
-const multer = require("multer");
-const path = require("path");
+const errorMiddleware = (err, req, res, next) => {
+  console.error(err.message);
 
-// Storage 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  },
-});
+  const statusCode = err.statusCode || 500;
 
-//(only images)
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPG and PNG images are allowed"), false);
-  }
+  res.status(statusCode).json({
+    success: false,
+    error: err.code || 'SERVER_ERROR',
+    message: err.message || 'Something went wrong'
+  });
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
-});
-
-module.exports = upload;
+module.exports = errorMiddleware;
