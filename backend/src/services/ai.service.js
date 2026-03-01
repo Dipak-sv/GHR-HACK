@@ -3,31 +3,68 @@ const path = require('path');
 const groq = require('../config/groq');
 const { parseGeminiResponse } = require('../utils/jsonParser.util');
 
-// ── FREQUENCY MAP ──────────────────────────────────────
-const frequencyMap = {
-  'OD': 'Once daily (morning)',
-  'BD': 'Twice daily (morning and night)',
-  'BID': 'Twice daily (morning and night)',
-  'TDS': 'Thrice daily (morning, afternoon and night)',
-  'TID': 'Thrice daily (morning, afternoon and night)',
-  'QID': 'Four times daily',
-  'SOS': 'As needed',
-  'PRN': 'As needed',
-  'HS': 'At bedtime',
-  '1-0-1': 'Morning and Night',
-  '1-1-1': 'Morning, Afternoon and Night',
-  '1-0-0': 'Morning only',
-  '0-0-1': 'Night only',
-  '0-1-0': 'Afternoon only',
-  '1-1-0': 'Morning and Afternoon',
-  '0-1-1': 'Afternoon and Night',
-  '101': 'Morning and Night',
-  '111': 'Morning, Afternoon and Night',
-  '100': 'Morning only',
-  '001': 'Night only',
-  '010': 'Afternoon only',
-  '110': 'Morning and Afternoon',
-  '011': 'Afternoon and Night'
+// ── SMART FREQUENCY PARSER ─────────────────────────────
+const parseFrequency = (raw) => {
+  if (!raw) return '';
+  const s = raw.toString().trim();
+  const u = s.toUpperCase().replace(/\./g, '');
+
+  // 1. Exact abbreviation matches
+  const exactMap = {
+    'OD': 'Morning',
+    'QD': 'Morning',
+    'BD': 'Morning and Night',
+    'BID': 'Morning and Night',
+    'TDS': 'Morning, Afternoon and Night',
+    'TID': 'Morning, Afternoon and Night',
+    'QID': 'Morning, Afternoon, Evening and Night',
+    'SOS': 'Take whenever needed',
+    'PRN': 'Take whenever needed',
+    'HS': 'Night only (at bedtime)',
+    'STAT': 'Immediately (one time)',
+    'NOCTE': 'Night only',
+    'MANE': 'Morning only',
+    'ONCE DAILY': 'Morning',
+    'TWICE DAILY': 'Morning and Night',
+    'THRICE DAILY': 'Morning, Afternoon and Night',
+  };
+  if (exactMap[u]) return exactMap[u];
+
+  // 2. 1-0-1 numeric notation — handle any separator (dash, space, slash, dot, 'to')
+  const tokens = s.split(/[\-\s\/\.]+|\bto\b/i)
+    .map(t => t.trim())
+    .filter(t => /^[012]$/.test(t));
+
+  if (tokens.length === 3) {
+    const [m, a, n] = tokens.map(Number);
+    const slots = [];
+    if (m > 0) slots.push('Morning');
+    if (a > 0) slots.push('Afternoon');
+    if (n > 0) slots.push('Night');
+    if (slots.length === 0) return 'As directed';
+    return slots.join(' and ');
+  }
+
+  // 3. Pure numeric 3-digit pattern: 101, 111, 001 etc.
+  if (/^[01]{3}$/.test(s)) {
+    const slots = [];
+    if (s[0] === '1') slots.push('Morning');
+    if (s[1] === '1') slots.push('Afternoon');
+    if (s[2] === '1') slots.push('Night');
+    return slots.length ? slots.join(' and ') : 'As directed';
+  }
+
+  // 4. Fuzzy text matches
+  if (/\b(sos|as needed|whenever|required|prn)\b/i.test(s)) return 'Take whenever needed';
+  if (/\b(four|4)\s*time/i.test(s)) return 'Morning, Afternoon, Evening and Night';
+  if (/\b(thrice|3)\s*time|tds|tid/i.test(s)) return 'Morning, Afternoon and Night';
+  if (/\b(twice|2)\s*time|bd|bid/i.test(s)) return 'Morning and Night';
+  if (/\b(once|1)\s*time|od\b/i.test(s)) return 'Morning';
+  if (/bedtime|at night|night only|nocte/i.test(s)) return 'Night only';
+  if (/morning only|mane/i.test(s)) return 'Morning only';
+
+  // 5. Fallback — return as directed, not the raw garbled text
+  return 'As directed';
 };
 
 // ── TIMING MAP ─────────────────────────────────────────
@@ -225,10 +262,9 @@ const extractPrescription = async (imagePath) => {
 
   // ── Post-process each medicine ─────────────────────────
   extractedData.medicines = extractedData.medicines.map(med => {
-    const freqKey = (med.frequency || '').toUpperCase().trim();
     const timingKey = (med.timing || '').toUpperCase().trim();
 
-    const frequency = frequencyMap[freqKey] || med.frequency || '';
+    const frequency = parseFrequency(med.frequency);
     const timing = timingMap[timingKey] || med.timing || '';
 
     const medType = (med.type || 'tablet').toLowerCase();
