@@ -60,23 +60,36 @@ exports.setReminder = async (req, res, next) => {
             .map(m => m.name)
             .join(', ');
 
-        await sendReminderSMS(
-            phoneNumber,
-            medicineNames,
-            'Reminder set successfully',
-            `You will receive reminders for: ${medicineNames}`
-        );
+        let smsStatus = 'sent';
+        let smsError = null;
+
+        try {
+            await sendReminderSMS(
+                phoneNumber,
+                medicineNames,
+                'Reminder set successfully',
+                `You will receive reminders for: ${medicineNames}`
+            );
+            console.log(`Confirmation SMS sent to ${phoneNumber}`);
+        } catch (twilioErr) {
+            console.error('Twilio SMS Error:', twilioErr.message);
+            smsStatus = 'failed';
+            smsError = twilioErr.message;
+        }
 
         return res.status(201).json({
             success: true,
-            message: 'Reminder set successfully',
+            message: 'Reminder saved' + (smsStatus === 'failed' ? ' but SMS failed.' : '!'),
             reminderId: reminder._id,
             phoneNumber,
             reminderTimes,
-            endDate
+            endDate,
+            smsStatus,
+            smsError
         });
 
     } catch (error) {
+        console.error('Set Reminder Error:', error);
         next(error);
     }
 };
