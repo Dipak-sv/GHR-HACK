@@ -186,7 +186,27 @@ const Verification = () => {
                                 <div className="grid grid-cols-3 gap-3 text-sm">
                                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                                         <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">🕐 How Often</p>
-                                        <p className="text-slate-800 font-semibold">{med.frequency || 'As directed'}</p>
+                                        <p className="text-slate-800 font-semibold">
+                                            {(() => {
+                                                const map = {
+                                                    '0-1-0': 'Afternoon only',
+                                                    '1-0-1': 'Morning and Night',
+                                                    '1-1-1': 'Morning, Afternoon and Night',
+                                                    '1-0-0': 'Morning only',
+                                                    '0-0-1': 'Night only',
+                                                    '1-1-0': 'Morning and Afternoon',
+                                                    '0-1-1': 'Afternoon and Night',
+                                                    'OD': 'Once daily',
+                                                    'BD': 'Twice daily',
+                                                    'TDS': 'Thrice daily',
+                                                    'TID': 'Thrice daily',
+                                                    'QID': 'Four times daily',
+                                                    'SOS': 'As needed',
+                                                    'HS': 'At bedtime'
+                                                };
+                                                return map[med.frequency] || med.frequency || 'As directed';
+                                            })()}
+                                        </p>
                                     </div>
                                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                                         <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">🍽️ With Food</p>
