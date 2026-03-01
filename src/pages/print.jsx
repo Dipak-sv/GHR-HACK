@@ -123,8 +123,13 @@ const Print = () => {
 
             if (!res.ok) throw new Error(data.message || 'Failed to set reminder');
 
-            setReminderSuccess(true);
-            setShowReminderForm(false);
+            if (data.smsStatus === 'failed') {
+                setReminderError(`Reminder saved, but SMS failed: ${data.smsError}. Ensure this number is Verified on your Twilio Trial account.`);
+                setShowReminderForm(true);
+            } else {
+                setReminderSuccess(true);
+                setShowReminderForm(false);
+            }
 
         } catch (err) {
             setReminderError(err.message);
