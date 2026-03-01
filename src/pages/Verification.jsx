@@ -168,29 +168,39 @@ const Verification = () => {
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-slate-700 ml-2">Your Medicines ({patientMedicines.length})</h3>
                         {patientMedicines.map((med, i) => (
-                            <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h4 className="text-xl font-bold text-slate-800">{med.name || '—'}</h4>
-                                        <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-                                            {med.type || 'tablet'}
+                            <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                {/* Medicine name + type */}
+                                <div className="flex items-center gap-3 mb-4">
+                                    <h4 className="text-xl font-bold text-slate-800">{med.name || '—'}</h4>
+                                    <span className="bg-teal-50 text-teal-700 border border-teal-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                                        {med.type || 'tablet'}
+                                    </span>
+                                    {med.dosage && (
+                                        <span className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold">
+                                            {med.dosage}
                                         </span>
-                                    </div>
-                                    <p className="text-slate-500 font-medium">{med.duration || 'As directed'}</p>
+                                    )}
                                 </div>
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 w-full sm:w-auto text-sm space-y-2 min-w-[200px]">
-                                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                                        <span className="text-slate-400 font-semibold uppercase text-xs">When to take</span>
-                                        <span className="text-slate-800 font-bold">{med.frequency || '—'}</span>
+
+                                {/* 3-column details grid */}
+                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">🕐 How Often</p>
+                                        <p className="text-slate-800 font-semibold">{med.frequency || 'As directed'}</p>
                                     </div>
-                                    <div className="flex justify-between pt-1">
-                                        <span className="text-slate-400 font-semibold uppercase text-xs">Timing</span>
-                                        <span className="text-slate-800 font-bold">{med.timing || '—'}</span>
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">🍽️ With Food</p>
+                                        <p className="text-slate-800 font-semibold">{med.timing || 'As directed'}</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">📅 Duration</p>
+                                        <p className="text-slate-800 font-semibold">{med.duration || 'As directed'}</p>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
+
 
                     {/* Print Action */}
                     <div className="pt-8 text-center pb-10">
