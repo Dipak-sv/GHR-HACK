@@ -3,12 +3,109 @@ const path = require('path');
 const groq = require('../config/groq');
 const { parseGeminiResponse } = require('../utils/jsonParser.util');
 
-const extractionPrompt = `
-You are a medical prescription parser for Indian handwritten prescriptions.
-Carefully read this handwritten prescription image.
-Extract ALL visible information and medicines.
+// ── FREQUENCY MAP ──────────────────────────────────────
+const frequencyMap = {
+  'OD': 'Once daily (morning)',
+  'BD': 'Twice daily (morning and night)',
+  'BID': 'Twice daily (morning and night)',
+  'TDS': 'Thrice daily (morning, afternoon and night)',
+  'TID': 'Thrice daily (morning, afternoon and night)',
+  'QID': 'Four times daily',
+  'SOS': 'As needed',
+  'PRN': 'As needed',
+  'HS': 'At bedtime',
+  '1-0-1': 'Morning and Night',
+  '1-1-1': 'Morning, Afternoon and Night',
+  '1-0-0': 'Morning only',
+  '0-0-1': 'Night only',
+  '0-1-0': 'Afternoon only',
+  '1-1-0': 'Morning and Afternoon',
+  '0-1-1': 'Afternoon and Night',
+  '101': 'Morning and Night',
+  '111': 'Morning, Afternoon and Night',
+  '100': 'Morning only',
+  '001': 'Night only',
+  '010': 'Afternoon only',
+  '110': 'Morning and Afternoon',
+  '011': 'Afternoon and Night'
+};
 
-Return ONLY this exact JSON — no markdown, no explanation, nothing else:
+// ── TIMING MAP ─────────────────────────────────────────
+const timingMap = {
+  'AC': 'Before food',
+  'PC': 'After food',
+  'CC': 'With food',
+  'HS': 'At bedtime'
+};
+
+// ── EXTRACTION PROMPT ──────────────────────────────────
+const extractionPrompt = `
+You are the world's most experienced medical prescription reader 
+specializing in Indian doctor handwriting. You have read over 
+1 million Indian prescriptions. Your job is critical — a patient's 
+safety depends on accurate extraction.
+
+INDIAN PRESCRIPTION ABBREVIATIONS YOU MUST RECOGNIZE:
+Frequency:
+  OD = Once Daily
+  BD or BID = Twice Daily
+  TDS or TID = Thrice Daily
+  QID = Four times daily
+  SOS or PRN = As needed
+  HS = At bedtime
+
+IMPORTANT — 1-0-1 NOTATION:
+  Doctors write three numbers separated by dashes or spaces
+  Position 1 = Morning, Position 2 = Afternoon, Position 3 = Night
+  1 = Take medicine at that time, 0 = Skip that time
+  Examples:
+    1-0-1 = Take morning AND night, skip afternoon
+    1-1-1 = Take all three times
+    0-0-1 = Take at night only
+    1-0-0 = Take morning only
+  Extract this notation exactly as written in the frequency field
+
+Timing:
+  AC = Before food
+  PC = After food
+  CC = With food
+
+Medicine Types:
+  TAB = Tablet, CAP = Capsule, SYR = Syrup
+  INJ = Injection, OIN = Ointment
+  EYE DRP = Eye drops, EAR DRP = Ear drops
+  SUSP = Suspension, CREAM = Cream
+
+COMMON INDIAN MEDICINES:
+Paracetamol, Dolo, Calpol, Metformin, Glycomet,
+Amlodipine, Amlong, Atorvastatin, Lipitor, Storvas,
+Pantoprazole, Pan, Azithromycin, Azee, Amoxicillin,
+Augmentin, Cetirizine, Bilastine, Etizolam, Etizola,
+Cilorite, Magdep, Telma, Telmisartan, Ecosprin,
+Clopidogrel, Ramipril, Aspirin, Ibuprofen, Diclofenac,
+Omeprazole, Ranitidine, Metronidazole, Ciprofloxacin,
+Levofloxacin, Ondansetron, Domperidone, Montelukast
+
+EXTRACTION RULES:
+1. Read EVERY word top to bottom left to right
+2. Doctor name: top of page with Dr/MD/MBBS prefix
+3. Patient name: after "Name:" or top right area
+4. Date: after "Date:" or "Dt:" format DD/MM/YYYY
+5. Medicines: numbered or bulleted list — extract ALL
+6. Each medicine line: name → dosage → frequency → duration
+7. If type not written → assume tablet
+8. If dosage unclear → write best medical guess with low confidence
+9. NEVER skip medicine because handwriting is unclear
+10. Partial name is better than no name
+11. Look for diagnosis or chief complaint at top
+12. Extract any special instructions as doctorNotes
+
+CONFIDENCE RULES:
+high   = name AND dosage clearly readable, certain
+medium = name readable, dosage guessed from context
+low    = name partially readable, best educated guess
+
+RETURN ONLY THIS EXACT JSON — NO MARKDOWN — NO TEXT BEFORE OR AFTER:
 {
   "patientName": "",
   "doctorName": "",
@@ -17,81 +114,60 @@ Return ONLY this exact JSON — no markdown, no explanation, nothing else:
   "medicines": [
     {
       "name": "",
-      "type": "tablet | capsule | syrup | injection | drops | cream | other",
+      "type": "tablet",
       "dosage": "",
       "frequency": "",
       "duration": "",
       "timing": "",
-      "confidence": "high | medium | low"
+      "confidence": "high"
     }
   ],
   "doctorNotes": "",
   "warnings": []
 }
 
-Field rules:
-- patientName: Patient's full name ONLY if clearly visible. If not present, leave as "". Do NOT invent or make up names.
-- doctorName: Doctor's name and qualifications ONLY if clearly visible. If not present, leave as "". Do NOT invent names.
-- date: Prescription date ONLY if visible.
-- diagnosis: Any diagnosis or chief complaint written.
-- type: What kind of medicine (tablet, capsule, syrup, etc.)
-- dosage: Look extremely closely for dose amount, e.g., "500mg", "100mg", or "10ml". Extract exactly what is written. If dosage is truly omitted or unclear, leave as "". Do NOT guess a dosage.
-- frequency: Look extremely closely for when to take. Extract exactly what is written or convert Indian shorthand if present:
-    "1-0-1" → "Morning and Night"
-    "1-1-1" → "Morning, Afternoon and Night"
-    "0-0-1" → "Night only"
-    "1-0-0" → "Morning only"
-    "SOS" → "As needed"
-    If frequency is truly NOT written anywhere, leave as "". Do NOT guess a schedule.
-- timing: Before/after food. Convert: "PC" or "AC" → "After food" or "Before food". Leave as "" if not written.
-- duration: Look closely for how many days, e.g., "5 days", "1 month". Leave as "" if truly not written.
-- confidence: high=clearly legible, medium=partial/guess, low=unclear
-
-CRITICAL STRICT INSTRUCTIONS:
-1. YOU MUST LOOK EXTREMELY CLOSELY. Do NOT miss extracting dosage, frequency, timing or duration if it is written anywhere near the medicine.
-2. NEVER invent, hallucinate, or assume any missing data. If a name or number is not physically written, do not guess.
-3. If ANY field (patientName, doctorName, dosage, frequency, duration, etc.) is strictly absent in the image, you MUST leave it as an empty string "". 
-4. Your job is ONLY to extract exactly what is physically written on the paper. Do NOT fill in "standard" values or use your own AI preference.
-5. Do NOT add or change any medical information.
-6. Return ONLY the JSON object, nothing else.
+ABSOLUTE FINAL RULES:
+- Return ONLY the JSON — nothing before, nothing after
+- medicines array must NEVER be empty if any text is visible
+- Wrong guess with low confidence is better than empty field
+- This system protects patient lives — extract everything visible
 `;
 
+// ── SIMPLIFICATION PROMPT ──────────────────────────────
 const buildSimplificationPrompt = (extractedData, language) => `
-You are a patient communication assistant.
-Translate this prescription data into simple patient instructions.
+You are a patient communication assistant helping patients in India 
+understand their prescriptions. Many patients are elderly or have 
+low medical literacy.
+
 Target language: ${language}
+${language === 'hindi' ? 'Write in simple Hindi using Devanagari script.' : ''}
+${language === 'marathi' ? 'Write in simple Marathi using Devanagari script.' : ''}
+${language === 'english' ? 'Write in simple everyday English.' : ''}
 
 Prescription data:
 ${JSON.stringify(extractedData, null, 2)}
 
-Rules for Translation:
-1. "instructions": Write a simple, reassuring paragraph per medicine in ${language}. Use simple everyday words, no medical jargon. End with a short general medication safety reminder.
-2. "translatedData": Translate the patientName, doctorName, diagnosis, doctorNotes, and ALL medicine fields (type, dosage, frequency, duration, timing) to ${language}. 
-3. IMPORTANT for Medicine Names: Convert medicine names to the script of the target language (e.g., Devanagari for Hindi/Marathi), but KEEP the exact phonetic pronunciation. Do NOT translate the meaning of the name.
-4. IMPORTANT for confidence: DO NOT translate the "confidence" field. Leave it exactly as "high", "medium", or "low" in English.
+INSTRUCTIONS:
+- Write a warm greeting first
+- One clear paragraph per medicine
+- For each medicine explain:
+  * What it is for (general, not diagnosis specific)
+  * How many to take and when (morning/afternoon/night)
+  * Before or after food
+  * For how many days
+- Use simple words — no medical jargon
+- Be warm and reassuring — patient may be anxious
+- Do NOT add or change any medical information
+- End with these reminders:
+  * Complete the full course
+  * Do not skip doses
+  * Contact doctor if side effects occur
+  * Keep medicines away from children
 
-Return ONLY this exact JSON — no markdown, no explanation, nothing else:
-{
-  "instructions": "translated instructions here",
-  "patientName": "translated",
-  "doctorName": "translated",
-  "diagnosis": "translated",
-  "doctorNotes": "translated",
-  "medicines": [
-    {
-      "name": "phonetic translation",
-      "type": "translated",
-      "dosage": "translated",
-      "frequency": "translated",
-      "duration": "translated",
-      "timing": "translated",
-      "confidence": "high | medium | low"
-    }
-  ]
-}
+Write ENTIRELY in ${language}. No mixing of languages.
 `;
 
-// ── FUNCTION 1: Extract from image ────────────────────
+// ── FUNCTION 1: Extract from image ─────────────────────
 const extractPrescription = async (imagePath) => {
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString('base64');
@@ -125,7 +201,7 @@ const extractPrescription = async (imagePath) => {
       }
     ],
     temperature: 0.1,
-    max_tokens: 1500
+    max_tokens: 2048
   });
 
   const rawResponse = response.choices[0].message.content;
@@ -133,30 +209,71 @@ const extractPrescription = async (imagePath) => {
 
   const extractedData = parseGeminiResponse(rawResponse);
 
-  // Ensure all fields exist
+  // ── Ensure all fields exist ────────────────────────────
   if (!extractedData.patientName) extractedData.patientName = '';
   if (!extractedData.doctorName) extractedData.doctorName = '';
   if (!extractedData.date) extractedData.date = '';
-  if (!extractedData.diagnosis) extractedData.diagnosis = '';
-  if (!extractedData.medicines) extractedData.medicines = [];
   if (!extractedData.doctorNotes) extractedData.doctorNotes = '';
   if (!extractedData.warnings) extractedData.warnings = [];
+  if (!extractedData.medicines) extractedData.medicines = [];
 
-  // Ensure each medicine has all required fields
-  extractedData.medicines = extractedData.medicines.map(med => ({
-    name: med.name || '',
-    type: med.type || 'tablet',
-    dosage: med.dosage || '',
-    frequency: med.frequency || '',
-    duration: med.duration || '',
-    timing: med.timing || '',
-    confidence: med.confidence || 'medium'
-  }));
+  // ── Clean diagnosis ────────────────────────────────────
+  if (extractedData.diagnosis && extractedData.diagnosis.length > 80) {
+    extractedData.diagnosis = extractedData.diagnosis.split('.')[0].trim();
+  }
+  if (!extractedData.diagnosis) extractedData.diagnosis = '';
+
+  // ── Post-process each medicine ─────────────────────────
+  extractedData.medicines = extractedData.medicines.map(med => {
+    const freqKey = (med.frequency || '').toUpperCase().trim();
+    const timingKey = (med.timing || '').toUpperCase().trim();
+
+    const frequency = frequencyMap[freqKey] || med.frequency || '';
+    const timing = timingMap[timingKey] || med.timing || '';
+
+    const medType = (med.type || 'tablet').toLowerCase();
+
+    // ── Smart dosage unit assignment ───────────────────────
+    let dosage = med.dosage || '';
+    if (dosage) {
+      const numericOnly = /^\d+(\.\d+)?$/.test(dosage.trim());
+      const alreadyHasUnit = /[a-zA-Z]/.test(dosage);
+
+      if (numericOnly || !alreadyHasUnit) {
+        // Syrup / Suspension → ml
+        if (medType === 'syrup' || medType === 'suspension' || medType === 'susp') {
+          dosage = dosage.trim() + 'ml';
+        }
+        // Tablet / Capsule → mg (default for solid oral forms)
+        else if (medType === 'tablet' || medType === 'capsule' || medType === 'cap' || medType === 'tab') {
+          dosage = dosage.trim() + 'mg';
+        }
+        // Cream / Ointment → gm
+        else if (medType === 'cream' || medType === 'ointment' || medType === 'oin') {
+          dosage = dosage.trim() + 'gm';
+        }
+        // Default fallback → mg
+        else {
+          dosage = dosage.trim() + 'mg';
+        }
+      }
+    }
+
+    return {
+      name: med.name || '',
+      type: medType,
+      dosage,
+      frequency,
+      duration: med.duration || '',
+      timing,
+      confidence: med.confidence || 'low'
+    };
+  });
 
   return { extractedData, rawText: rawResponse };
 };
 
-// ── FUNCTION 2: Simplify for patient ──────────────────
+// ── FUNCTION 2: Simplify for patient ───────────────────
 const simplifyPrescription = async (extractedData, language) => {
   const prompt = buildSimplificationPrompt(extractedData, language);
 
@@ -169,73 +286,71 @@ const simplifyPrescription = async (extractedData, language) => {
       }
     ],
     temperature: 0.3,
-    max_tokens: 1500
+    max_tokens: 2048
   });
 
-  const rawText = response.choices[0].message.content;
+  const simplifiedText = response.choices[0].message.content;
 
-  if (!rawText || rawText.trim() === '') {
+  if (!simplifiedText || simplifiedText.trim() === '') {
     throw new Error('SIMPLIFY_EMPTY: Groq returned empty response');
   }
 
-  const result = parseGeminiResponse(rawText);
-
-  if (!result || !result.instructions) {
-    throw new Error('SIMPLIFY_PARSE_ERROR: Could not parse instructions from JSON');
-  }
-
-  // Support both flattened and nested JSON (if the AI disobeys prompt structure)
-  const tData = result.translatedData || result;
-  const finalTranslatedData = tData.medicines ? tData : extractedData;
-
-  return {
-    simplifiedText: result.instructions,
-    translatedData: finalTranslatedData
-  };
+  return { simplifiedText };
 };
 
-// ── FUNCTION 3: Generate structured summary (pure JS, no AI) ──
+// ── FUNCTION 3: Generate Summary ───────────────────────
 const generateSummary = (extractedData, safetyAnalysis) => {
+  const {
+    patientName, doctorName,
+    date, diagnosis, medicines
+  } = extractedData;
+
   const { safetyScore, overallRisk, flags } = safetyAnalysis;
 
   const riskEmoji = overallRisk === 'low' ? '✅'
-    : overallRisk === 'medium' ? '⚠️'
-      : '🔴';
+    : overallRisk === 'medium' ? '⚠️' : '🔴';
 
-  const criticalCount = flags.filter(f => f.severity === 'CRITICAL').length;
-  const warningCount = flags.filter(f => f.severity === 'WARNING').length;
+  const medicineList = medicines.map((med, i) => {
+    const confidenceEmoji = med.confidence === 'high' ? '✅'
+      : med.confidence === 'medium' ? '⚠️' : '🔴';
 
-  const confEmoji = (c) => c === 'high' ? '✅' : c === 'medium' ? '⚠️' : '🔴';
+    return {
+      index: i + 1,
+      display: `${med.name} (${med.type})`,
+      dose: `${med.dosage || 'not specified'} | ${med.frequency || 'not specified'}`,
+      timing: med.timing || 'Any time',
+      duration: med.duration || 'As directed',
+      confidence: `${med.confidence} ${confidenceEmoji}`
+    };
+  });
 
-  const medicines = (extractedData.medicines || []).map((med, i) => ({
-    index: i + 1,
-    display: `${med.name || 'Unknown'} (${med.type || 'tablet'})`,
-    dose: `${med.dosage || 'not specified'} | ${med.frequency || 'not specified'}`,
-    timing: med.timing || 'Any time',
-    duration: med.duration || 'As directed',
-    confidence: `${med.confidence || 'medium'} ${confEmoji(med.confidence)}`
-  }));
+  const criticalFlags = flags.filter(f => f.severity === 'CRITICAL');
+  const warningFlags = flags.filter(f => f.severity === 'WARNING');
 
   return {
     header: {
-      patientName: extractedData.patientName || '',
-      doctorName: extractedData.doctorName || '',
-      date: extractedData.date || '',
-      diagnosis: extractedData.diagnosis || ''
+      patientName: patientName || 'Not specified',
+      doctorName: doctorName || 'Not specified',
+      date: date || 'Not specified',
+      diagnosis: diagnosis || 'Not specified'
     },
     safety: {
       score: safetyScore,
       risk: overallRisk,
       riskEmoji,
       display: `${safetyScore}/100 ${riskEmoji} ${overallRisk.toUpperCase()} RISK`,
-      criticalCount,
-      warningCount,
+      criticalCount: criticalFlags.length,
+      warningCount: warningFlags.length,
       flags
     },
-    medicines,
+    medicines: medicineList,
     totalMedicines: medicines.length,
     generatedAt: new Date().toISOString()
   };
 };
 
-module.exports = { extractPrescription, simplifyPrescription, generateSummary };
+module.exports = {
+  extractPrescription,
+  simplifyPrescription,
+  generateSummary
+};
