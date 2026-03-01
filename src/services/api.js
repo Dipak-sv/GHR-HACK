@@ -9,6 +9,15 @@ const handleResponse = async (res) => {
   return res.json();
 };
 
+const getAuthHeaders = (extraHeaders = {}) => {
+  const token = localStorage.getItem('mediscript_token');
+  const headers = { ...extraHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 // ── 1. Upload prescription image ─────────────────────────
 export const uploadPrescription = async (imageFile) => {
   const formData = new FormData();
@@ -16,8 +25,8 @@ export const uploadPrescription = async (imageFile) => {
 
   const res = await fetch(`${BASE_URL}/api/upload`, {
     method: 'POST',
+    headers: getAuthHeaders(), // Authorization only, no Content-Type for multipart
     body: formData,
-    // NOTE: do NOT set Content-Type — browser sets it with boundary for multipart
   });
   return handleResponse(res);
 };
@@ -26,7 +35,7 @@ export const uploadPrescription = async (imageFile) => {
 export const simplifyPrescription = async (sessionId, language) => {
   const res = await fetch(`${BASE_URL}/api/simplify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ sessionId, language }),
   });
   return handleResponse(res);
@@ -36,7 +45,7 @@ export const simplifyPrescription = async (sessionId, language) => {
 export const confirmPrescription = async (sessionId, verifiedMedicines, language) => {
   const res = await fetch(`${BASE_URL}/api/confirm`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ sessionId, verifiedMedicines, language }),
   });
   return handleResponse(res);
@@ -44,6 +53,8 @@ export const confirmPrescription = async (sessionId, verifiedMedicines, language
 
 // ── 4. Get confirmed prescription (403 if unverified) ────
 export const getPrescription = async (sessionId) => {
-  const res = await fetch(`${BASE_URL}/api/prescription/${sessionId}`);
+  const res = await fetch(`${BASE_URL}/api/prescription/${sessionId}`, {
+    headers: getAuthHeaders(),
+  });
   return handleResponse(res);
 };

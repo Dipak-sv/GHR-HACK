@@ -1,4 +1,4 @@
-# 🏥 MediScript AI
+# 🏥 Prescripto
 ### Intelligent Doctor Handwriting Interpretation & Patient-Friendly Prescription System
 
 > Built at **GHRHack 2.0** — 30-Hour National Hackathon | Jalgaon, Maharashtra | Feb 28 – Mar 1, 2026
@@ -18,7 +18,7 @@ The root cause? Illegible doctor handwriting.
 
 Existing OCR tools simply extract raw text. They do **not** validate safety, flag errors, or explain instructions to patients.
 
-**MediScript AI solves this.**
+**Prescripto solves this.**
 
 ---
 

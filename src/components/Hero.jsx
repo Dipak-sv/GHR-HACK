@@ -66,8 +66,8 @@ const Hero = () => {
           </h1>
 
           <p className="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed font-light">
-            An Intelligent Doctor Handwriting Interpretation System that converts illegible
-            medical prescriptions into structured, patient-friendly digital instructions with high confidence.
+            An Intelligent HealthTech solution that automatically interprets handwritten medical
+            prescriptions and converts them into clear, simple digital information.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

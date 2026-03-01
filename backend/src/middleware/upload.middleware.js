@@ -1,6 +1,5 @@
-
 const multer = require('multer');
-const path   = require('path');
+const path = require('path');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -31,17 +30,3 @@ const upload = multer({
 });
 
 module.exports = upload;
-const errorMiddleware = (err, req, res, next) => {
-  console.error(err.message);
-
-  const statusCode = err.statusCode || 500;
-
-  res.status(statusCode).json({
-    success: false,
-    error: err.code || 'SERVER_ERROR',
-    message: err.message || 'Something went wrong'
-  });
-};
-
-module.exports = errorMiddleware;
-

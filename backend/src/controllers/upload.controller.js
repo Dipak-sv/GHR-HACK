@@ -1,16 +1,8 @@
-
-const fs           = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const Prescription = require('../models/prescription.model');
-const { extractPrescription } = require('../services/ai.service');
-const { analyzeSafety }       = require('../services/safety.engine');
-
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const Prescription = require('../models/prescription.model');
-const { extractPrescription } = require('../services/ai.service');
+const { extractPrescription, generateSummary } = require('../services/ai.service');
 const { analyzeSafety } = require('../services/safety.engine');
-
 
 exports.uploadImage = async (req, res, next) => {
   try {
@@ -44,7 +36,10 @@ exports.uploadImage = async (req, res, next) => {
     // STEP 4 — Run Safety Engine
     const safetyAnalysis = analyzeSafety(aiResult.extractedData);
 
-    // STEP 5 — Save to MongoDB
+    // STEP 5 — Generate structured summary
+    const summary = generateSummary(aiResult.extractedData, safetyAnalysis);
+
+    // STEP 6 — Save to MongoDB
     const prescription = new Prescription({
       sessionId,
       extractedData: aiResult.extractedData,
@@ -52,15 +47,16 @@ exports.uploadImage = async (req, res, next) => {
     });
     await prescription.save();
 
-    // STEP 6 — Delete temp image (privacy)
+    // STEP 7 — Delete temp image (privacy)
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-    // STEP 7 — Return response
+    // STEP 8 — Return full response
     return res.status(200).json({
       success: true,
       sessionId,
       extractedData: aiResult.extractedData,
-      safetyAnalysis
+      safetyAnalysis,
+      summary
     });
 
   } catch (error) {
@@ -70,4 +66,4 @@ exports.uploadImage = async (req, res, next) => {
     }
     next(error);
   }
-
+};

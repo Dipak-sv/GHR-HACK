@@ -1,16 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
 import Verification from './pages/Verification';
 import Print from './pages/print';
 import Navbar from './components/Navbar';
-
-// Processing, Confirmation, Summary, Share kept for backward-compat but no longer in main flow
-import Processing from './pages/Processing';
-import Confirmation from './pages/Confirmation';
-import Summary from './pages/Summary';
-import Share from './pages/Share';
+import ProtectedRoute from './components/ProtectedRoute';
+import UnauthorizedPage from './pages/UnauthorizedPage';
 
 function App() {
   return (
@@ -18,17 +16,23 @@ function App() {
       <>
         <Navbar />
         <Routes>
-          {/* ── Main judge flow ── */}
+          {/* ── Public routes ── */}
           <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/verification" element={<Verification />} />
-          <Route path="/print" element={<Print />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* ── Legacy pages (kept intact) ── */}
-          <Route path="/processing" element={<Processing />} />
-          <Route path="/confirmation" element={<Confirmation />} />
-          <Route path="/summary" element={<Summary />} />
-          <Route path="/share" element={<Share />} />
+          {/* ── Protected routes ── */}
+          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+
+          {/* Verification is shared mapping, actual UI restriction inside Verification.jsx */}
+          <Route path="/results" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
+          <Route path="/verification" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
+
+          {/* /verify strictly requires pharmacist role */}
+          <Route path="/verify" element={<ProtectedRoute allowedRoles={['pharmacist']}><Verification /></ProtectedRoute>} />
+
+          <Route path="/print" element={<ProtectedRoute><Print /></ProtectedRoute>} />
         </Routes>
       </>
     </Router>

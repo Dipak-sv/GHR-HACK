@@ -1,21 +1,20 @@
-// FILE 1: backend/src/models/prescription.model.js
-// ============================================================
-
 const mongoose = require('mongoose');
 
 const medicineSchema = new mongoose.Schema({
-  name:       { type: String, default: '' },
-  dosage:     { type: String, default: '' },
-  frequency:  { type: String, default: '' },
-  duration:   { type: String, default: '' },
+  name: { type: String, default: '' },
+  type: { type: String, default: '' },
+  dosage: { type: String, default: '' },
+  frequency: { type: String, default: '' },
+  duration: { type: String, default: '' },
+  timing: { type: String, default: '' },
   confidence: { type: String, enum: ['high', 'medium', 'low'], default: 'low' }
 }, { _id: false });
 
 const flagSchema = new mongoose.Schema({
-  field:    { type: String },
-  rule:     { type: String },
+  field: { type: String },
+  rule: { type: String },
   severity: { type: String, enum: ['CRITICAL', 'WARNING'] },
-  message:  { type: String }
+  message: { type: String }
 }, { _id: false });
 
 const prescriptionSchema = new mongoose.Schema({
@@ -25,22 +24,26 @@ const prescriptionSchema = new mongoose.Schema({
     unique: true
   },
   extractedData: {
-    medicines:   { type: [medicineSchema], default: [] },
+    patientName: { type: String, default: '' },
+    doctorName: { type: String, default: '' },
+    date: { type: String, default: '' },
+    diagnosis: { type: String, default: '' },
+    medicines: { type: [medicineSchema], default: [] },
     doctorNotes: { type: String, default: '' },
-    warnings:    { type: [String], default: [] }
+    warnings: { type: [String], default: [] }
   },
   safetyAnalysis: {
     safetyScore: { type: Number, default: 0 },
-    flags:       { type: [flagSchema], default: [] },
+    flags: { type: [flagSchema], default: [] },
     overallRisk: { type: String, enum: ['low', 'medium', 'high'], default: 'low' }
   },
   simplifiedOutput: {
-    english: { type: String, default: '' },
-    hindi:   { type: String, default: '' },
-    marathi: { type: String, default: '' }
+    english: { type: mongoose.Schema.Types.Mixed, default: null },
+    hindi: { type: mongoose.Schema.Types.Mixed, default: null },
+    marathi: { type: mongoose.Schema.Types.Mixed, default: null }
   },
   humanVerified: { type: Boolean, default: false },
-  confirmedAt:   { type: Date }
+  confirmedAt: { type: Date }
 }, { timestamps: true });
 
 // Auto delete after 24 hours

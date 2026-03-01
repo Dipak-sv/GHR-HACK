@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "prescripto-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Prescripto AI Backend",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
@@ -11,26 +11,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google-cloud/vision": "^5.3.4",
-    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-
+    "dotenv": "^16.4.5",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.2.1",
     "groq-sdk": "^0.37.0",
-    "mongoose": "^9.2.3",
-    "multer": "^2.1.0",
-
-    "express": "^5.2.1",
-    "fs": "^0.0.1-security",
-    "mongoose": "^9.2.3",
-    "multer": "^2.1.0",
-    "path": "^0.12.7",
-    "router": "^2.2.0",
-    "save": "^2.9.0",
-    "uuid": "^13.0.0"
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.2.3",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.0"
   }
 }
